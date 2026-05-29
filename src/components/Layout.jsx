@@ -68,10 +68,10 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-[#1a0a2e] border-r border-purple-800 shrink-0">
         <div className="p-5 border-b border-purple-800">
-          <div className="flex items-center gap-2">
+          <button onClick={handleReset} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <span className="text-3xl">🌿</span>
             <span className="text-white font-black text-xl tracking-tight">EcoGuard</span>
-          </div>
+          </button>
           <p className="text-purple-500 text-xs mt-1 capitalize">{role} Portal</p>
         </div>
 
@@ -109,10 +109,10 @@ export default function Layout() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-[#1a0a2e] border-b border-purple-800">
-          <div className="flex items-center gap-2">
+          <button onClick={handleReset} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <span className="text-2xl">🌿</span>
             <span className="text-white font-black text-lg">EcoGuard</span>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             <button onClick={() => setNotifOpen(true)} className="relative text-purple-300">
               <span className="text-xl">🔔</span>
