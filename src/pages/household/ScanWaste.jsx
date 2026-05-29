@@ -57,8 +57,8 @@ export default function ScanWaste() {
       <div className="relative bg-black border-2 border-dashed border-purple-600 rounded-3xl overflow-hidden" style={{ height: 300 }}>
         {/* Waste image — looks like a live camera feed */}
         <img
-          src="/willerbin-waste.png"
-          alt="Waste item being scanned"
+          src="/Sorted_Waste.png"
+          alt="Sorted waste being scanned"
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${scanning ? 'brightness-75 scale-105' : 'brightness-90'}`}
         />
         {/* Dark overlay to give it a camera-feed feel */}
@@ -158,7 +158,7 @@ export default function ScanWaste() {
               <div key={item.id} className={`flex items-center gap-3 bg-[#1a0a2e] border rounded-xl p-3 ${isWillerbin ? 'border-green-500/40 bg-green-500/5' : 'border-purple-800'}`}>
                 {isWillerbin ? (
                   <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-green-500/30">
-                    <img src="/willerbin-waste.png" alt="Plastic waste" className="w-full h-full object-cover" />
+                    <img src="/Sorted_Waste.png" alt="Sorted waste" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <span className="text-2xl">{item.icon}</span>
