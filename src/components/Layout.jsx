@@ -129,6 +129,7 @@ export default function Layout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [wsOpen, setWsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const role = currentUser.role;
   const ws = workspaces[role] || workspaces.admin;
@@ -138,7 +139,10 @@ export default function Layout() {
     setRole(r);
     navigate(`/${r}`);
     setWsOpen(false);
+    setMobileMenuOpen(false);
   };
+
+  const goHome = () => navigate('/');
 
   const initials = currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -153,12 +157,16 @@ export default function Layout() {
         {/* Logo */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-[var(--wire)] shrink-0">
           {!collapsed && (
-            <div className="flex items-center gap-2.5 min-w-0">
+            <button onClick={goHome} className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity">
               <div className="w-7 h-7 rounded flex items-center justify-center text-white text-[12px] font-bold shrink-0" style={{ background: 'var(--brand)' }}>EG</div>
               <span className="text-[15px] font-semibold text-[var(--ink)] tracking-tight">Eko-Guard</span>
-            </div>
+            </button>
           )}
-          {collapsed && <div className="w-7 h-7 rounded flex items-center justify-center text-white text-[12px] font-bold mx-auto" style={{ background: 'var(--brand)' }}>EG</div>}
+          {collapsed && (
+            <button onClick={goHome} className="mx-auto hover:opacity-80 transition-opacity">
+              <div className="w-7 h-7 rounded flex items-center justify-center text-white text-[12px] font-bold" style={{ background: 'var(--brand)' }}>EG</div>
+            </button>
+          )}
           {!collapsed && (
             <button onClick={() => setCollapsed(true)} className="text-[var(--dim)] hover:text-[var(--sub)] transition-colors">
               <ChevronsLeft size={15} />
@@ -257,9 +265,20 @@ export default function Layout() {
         {/* Topbar */}
         <header className="h-14 flex items-center gap-4 px-5 border-b border-[var(--wire)] shrink-0" style={{ background: 'var(--card)' }}>
 
-          {/* Mobile logo */}
+          {/* Mobile logo + workspace switcher trigger */}
           <div className="flex items-center gap-2 md:hidden">
-            <div className="w-7 h-7 rounded flex items-center justify-center text-white text-[12px] font-bold" style={{ background: 'var(--brand)' }}>EG</div>
+            <button onClick={goHome} className="hover:opacity-80 transition-opacity">
+              <div className="w-7 h-7 rounded flex items-center justify-center text-white text-[12px] font-bold" style={{ background: 'var(--brand)' }}>EG</div>
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded transition-colors"
+              style={{ background: 'var(--active)' }}
+            >
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color.dot }} />
+              <span className="text-[12px] font-medium" style={{ color: 'var(--ink)' }}>{ws.label}</span>
+              <ChevronDown size={11} style={{ color: 'var(--dim)' }} />
+            </button>
           </div>
 
           {/* Search */}
@@ -325,6 +344,68 @@ export default function Layout() {
           ))}
         </nav>
       </div>
+
+      {/* ── Mobile workspace menu ───────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" onClick={() => setMobileMenuOpen(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)' }} />
+
+          {/* Sheet */}
+          <div
+            className="absolute bottom-0 left-0 right-0 rounded-t-xl border-t anim-slide-up"
+            style={{ background: 'var(--card)', borderColor: 'var(--wire)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--wire-strong)' }} />
+            </div>
+
+            {/* Header */}
+            <div className="px-5 pb-3 border-b" style={{ borderColor: 'var(--wire)' }}>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>Switch Workspace</p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--sub)' }}>Currently: {ws.label}</p>
+            </div>
+
+            {/* Workspace list */}
+            <div className="px-3 py-2">
+              {Object.entries(workspaces).map(([key, w]) => (
+                <button
+                  key={key}
+                  onClick={() => switchWorkspace(key)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-colors"
+                  style={role === key ? { background: 'var(--active)' } : {}}
+                  onMouseEnter={e => { if (role !== key) e.currentTarget.style.background = 'var(--active)'; }}
+                  onMouseLeave={e => { if (role !== key) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: wsColors[key]?.dot }} />
+                  <div className="flex-1 text-left">
+                    <p className="text-[14px] font-medium" style={{ color: 'var(--ink)' }}>{w.label}</p>
+                    <p className="text-[11px]" style={{ color: 'var(--sub)' }}>{w.sub}</p>
+                  </div>
+                  {role === key && (
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: 'var(--brand)' }} />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Divider + actions */}
+            <div className="border-t px-3 py-2 pb-6" style={{ borderColor: 'var(--wire)' }}>
+              <button
+                onClick={() => { setRole(null); navigate('/'); setMobileMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg"
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--active)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <LogOut size={15} style={{ color: 'var(--dim)' }} />
+                <span className="text-[14px] font-medium" style={{ color: 'var(--sub)' }}>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <NotificationPanel
         open={notifOpen}

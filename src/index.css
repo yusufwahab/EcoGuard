@@ -87,11 +87,16 @@ body {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.35; }
 }
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
 
 .anim-fade-up    { animation: fadeUp    0.22s ease both; }
 .anim-slide-in   { animation: slideRight 0.26s cubic-bezier(0.22,1,0.36,1) both; }
 .anim-slide-left { animation: slideLeft  0.22s ease both; }
 .anim-pulse-dot  { animation: pulseDot  2s ease-in-out infinite; }
+.anim-slide-up   { animation: slideUp   0.28s cubic-bezier(0.22,1,0.36,1) both; }
 
 /* ── Sticky table header ───────────────────────────────────── */
 .eg-table thead th {

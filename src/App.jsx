@@ -34,19 +34,11 @@ import { AdminBinsMap, AdminAnalytics, AdminUsers, AdminReports } from './pages/
 function AppRoutes() {
   const { currentUser } = useApp();
 
-  if (!currentUser.role) {
-    return (
-      <Routes>
-        <Route path="/"       element={<Landing />} />
-        <Route path="/select" element={<RoleSelection />} />
-        <Route path="*"       element={<Navigate to="/" replace />} />
-      </Routes>
-    );
-  }
-
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={`/${currentUser.role}`} replace />} />
+      {/* Always accessible */}
+      <Route path="/"       element={<Landing />} />
+      <Route path="/select" element={currentUser.role ? <Navigate to={`/${currentUser.role}`} replace /> : <RoleSelection />} />
 
       {/* Household */}
       <Route path="/household" element={<Layout />}>
