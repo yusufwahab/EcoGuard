@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { ToastContainer } from './components/UI';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import RoleSelection from './pages/RoleSelection';
 
 // Household
@@ -36,8 +37,9 @@ function AppRoutes() {
   if (!currentUser.role) {
     return (
       <Routes>
-        <Route path="/" element={<RoleSelection />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/"       element={<Landing />} />
+        <Route path="/select" element={<RoleSelection />} />
+        <Route path="*"       element={<Navigate to="/" replace />} />
       </Routes>
     );
   }

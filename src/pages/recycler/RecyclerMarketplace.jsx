@@ -1,160 +1,228 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { BottomSheet, EmptyState } from '../../components/UI';
+import { PageHeader, KPICard, Card, Badge, Btn, SearchInput, Select, Modal } from '../../components/UI';
+import { Plus } from 'lucide-react';
 
-const typeColors = {
-  Plastics: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30', icon: '🧴' },
-  Paper: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30', icon: '📄' },
-  Metals: { bg: 'bg-gray-500/20', text: 'text-gray-400', border: 'border-gray-500/30', icon: '🔩' },
-  Glass: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30', icon: '🫙' },
+const materialColors = {
+  'PET Bottles': '#1E88E5', 'Cardboard': '#D4A017', 'Metal Scrap': '#8B949E',
+  'Glass': '#2E7D32', 'Aluminium': '#1A7F4E',
 };
-
-const timeSlots = ['Today 10:00–12:00', 'Today 14:00–16:00', 'Tomorrow 09:00–11:00'];
 
 export default function RecyclerMarketplace() {
   const { marketplaceListings, claimListing, addToast } = useApp();
-  const [filter, setFilter] = useState('All');
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('Nearest');
-  const [claimItem, setClaimItem] = useState(null);
-  const [selectedSlot, setSelectedSlot] = useState(0);
-  const [confirmed, setConfirmed] = useState(false);
-  const [tab, setTab] = useState('available');
+  const [search,  setSearch]  = useState('');
+  const [matFilter, setMat]   = useState('all');
+  const [gradeFilter, setGrade] = useState('all');
+  const [createOpen, setCreate] = useState(false);
+  const [claimTarget, setClaimTarget] = useState(null);
+  const [newForm, setNewForm] = useState({ material: '', grade: 'A', qty: '', price: '', location: '' });
 
-  const available = marketplaceListings.filter(l => !l.claimed);
-  const claimed = marketplaceListings.filter(l => l.claimed);
+  const filtered = marketplaceListings.filter(l => {
+    const q = search.toLowerCase();
+    const matchQ = l.material.toLowerCase().includes(q) || l.seller.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
+    const matchM = matFilter === 'all' || l.material === matFilter;
+    const matchG = gradeFilter === 'all' || l.grade === gradeFilter;
+    return matchQ && matchM && matchG;
+  });
 
-  const filtered = available
-    .filter(l => filter === 'All' || l.type === filter)
-    .filter(l => l.type.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase()));
+  const materials = [...new Set(marketplaceListings.map(l => l.material))];
+  const available = filtered.filter(l => l.status === 'Available');
+  const claimed   = filtered.filter(l => l.status === 'Sold');
 
-  const handleClaim = () => {
-    if (!confirmed) { addToast('Please confirm the checkbox', 'warning'); return; }
-    claimListing(claimItem.id);
-    addToast(`Claimed ${claimItem.quantity}kg of ${claimItem.type} ♻️`, 'success');
-    setClaimItem(null);
-    setConfirmed(false);
+  const confirmClaim = () => {
+    claimListing(claimTarget.id);
+    addToast(`Claim submitted for ${claimTarget.qty}kg ${claimTarget.material}.`, 'success');
+    setClaimTarget(null);
+  };
+
+  const handleCreate = (e) => {
+    e.preventDefault();
+    addToast(`Listing created: ${newForm.qty}kg ${newForm.material}`, 'success');
+    setCreate(false);
+    setNewForm({ material: '', grade: 'A', qty: '', price: '', location: '' });
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
-      <h1 className="text-white text-2xl font-black">♻️ Marketplace</h1>
+    <div className="space-y-5 anim-fade-up">
+      <PageHeader
+        title="Recyclables Marketplace"
+        subtitle="Source and trade recyclable materials across Lagos"
+        actions={<Btn onClick={() => setCreate(true)}><Plus size={13} />Create Listing</Btn>}
+      />
 
-      {/* Tabs */}
-      <div className="flex gap-2">
-        {['available', 'claims'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${tab === t ? 'bg-green-500 text-white' : 'bg-purple-900/40 text-purple-400 hover:text-white'}`}>
-            {t === 'available' ? `Available (${available.length})` : `My Claims (${claimed.length})`}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPICard label="Total Listings"  value={marketplaceListings.length} />
+        <KPICard label="Available"       value={marketplaceListings.filter(l=>l.status==='Available').length} deltaType="up" />
+        <KPICard label="Total Kg Listed" value={marketplaceListings.filter(l=>l.status==='Available').reduce((s,l)=>s+l.qty,0).toLocaleString()} />
+        <KPICard label="Avg Price/kg"    value="₦1,820" delta="Market rate" deltaType="neutral" />
       </div>
 
-      {tab === 'available' ? (
-        <>
-          {/* Filters */}
-          <div className="flex gap-2 flex-wrap items-center">
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..."
-              className="bg-[#1a0a2e] border border-purple-700 text-white text-sm rounded-xl px-3 py-2 outline-none focus:border-green-500 w-40" />
-            <div className="flex gap-2 overflow-x-auto">
-              {['All', 'Plastics', 'Paper', 'Metals', 'Glass'].map(f => (
-                <button key={f} onClick={() => setFilter(f)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${filter === f ? 'bg-green-500 border-green-500 text-white' : 'border-purple-700 text-purple-400 hover:border-purple-500'}`}>
-                  {f}
-                </button>
-              ))}
-            </div>
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="ml-auto bg-[#1a0a2e] border border-purple-700 text-purple-300 text-xs rounded-xl px-2 py-2 outline-none">
-              {['Nearest', 'Most Available', 'Newest'].map(s => <option key={s}>{s}</option>)}
-            </select>
-          </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search material, seller, location..." className="w-64" />
+        <Select value={matFilter} onChange={setMat}>
+          <option value="all">All Materials</option>
+          {materials.map(m => <option key={m} value={m}>{m}</option>)}
+        </Select>
+        <Select value={gradeFilter} onChange={setGrade}>
+          <option value="all">All Grades</option>
+          <option value="A">Grade A</option>
+          <option value="B">Grade B</option>
+          <option value="C">Grade C</option>
+        </Select>
+        <span className="text-[12px] self-center ml-auto" style={{ color: 'var(--sub)' }}>{filtered.length} listing{filtered.length !== 1 ? 's' : ''}</span>
+      </div>
 
-          {filtered.length === 0 ? (
-            <EmptyState icon="🌿" title="No listings near you yet" subtitle="Check back soon or adjust your filters" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {filtered.map(listing => {
-                const c = typeColors[listing.type] || typeColors.Plastics;
-                return (
-                  <div key={listing.id} className="bg-[#1a0a2e] border border-purple-800 hover:border-purple-600 rounded-2xl p-4 transition-all">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`${c.bg} ${c.border} border p-2 rounded-xl text-xl`}>{c.icon}</span>
-                        <div>
-                          <p className="text-white font-bold">{listing.type}</p>
-                          <p className="text-purple-400 text-xs">{listing.location} · {listing.distance}</p>
-                        </div>
-                      </div>
-                      <span className="text-white font-black text-lg">~{listing.quantity}kg</span>
+      {/* Listing grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.map(l => {
+          const color = materialColors[l.material] || '#8B949E';
+          return (
+            <Card key={l.id} pad={false}>
+              <div className="p-4">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded flex items-center justify-center text-white text-[11px] font-bold shrink-0"
+                      style={{ background: `${color}22`, color }}>
+                      {l.material.slice(0, 2).toUpperCase()}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <span key={i} className={`text-sm ${i < listing.quality ? 'text-amber-400' : 'text-purple-800'}`}>★</span>
-                        ))}
-                      </div>
-                      <span className="text-purple-500 text-xs">{new Date(listing.posted).toLocaleDateString()}</span>
+                    <div>
+                      <p className="text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{l.material}</p>
+                      <Badge variant={l.grade === 'A' ? 'success' : l.grade === 'B' ? 'warning' : 'muted'}>Grade {l.grade}</Badge>
                     </div>
-                    <button onClick={() => setClaimItem(listing)}
-                      className="w-full mt-3 bg-green-500 hover:bg-green-400 text-white font-bold py-2.5 rounded-xl transition-all hover:scale-[1.02] active:scale-95">
-                      Claim Pickup
-                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="space-y-3">
-          {claimed.length === 0 ? (
-            <EmptyState icon="📌" title="No claims yet" subtitle="Claim listings from the marketplace" action="Browse Listings" onAction={() => setTab('available')} />
-          ) : claimed.map(listing => {
-            const c = typeColors[listing.type] || typeColors.Plastics;
-            return (
-              <div key={listing.id} className="bg-[#1a0a2e] border border-purple-800 rounded-2xl p-4 flex items-center gap-4">
-                <span className="text-3xl">{c.icon}</span>
-                <div className="flex-1">
-                  <p className="text-white font-bold">{listing.type} — {listing.quantity}kg</p>
-                  <p className="text-purple-400 text-xs">{listing.location}</p>
+                  <Badge variant={l.status === 'Available' ? 'success' : l.status === 'Pending' ? 'warning' : 'muted'}>
+                    {l.status}
+                  </Badge>
                 </div>
-                <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs px-2 py-1 rounded-full">Pending</span>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-md mb-3" style={{ background: 'var(--active)' }}>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: 'var(--dim)' }}>Quantity</p>
+                    <p className="text-[14px] font-semibold font-mono" style={{ color: 'var(--ink)' }}>{l.qty.toLocaleString()} {l.unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: 'var(--dim)' }}>Price / kg</p>
+                    <p className="text-[14px] font-semibold" style={{ color: '#D4A017' }}>₦{l.price.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Seller info */}
+                <div className="space-y-1 mb-3">
+                  <div className="flex justify-between text-[12px]">
+                    <span style={{ color: 'var(--sub)' }}>Seller</span>
+                    <span style={{ color: 'var(--ink)' }}>{l.seller}</span>
+                  </div>
+                  <div className="flex justify-between text-[12px]">
+                    <span style={{ color: 'var(--sub)' }}>Location</span>
+                    <span style={{ color: 'var(--ink)' }}>{l.location}</span>
+                  </div>
+                  <div className="flex justify-between text-[12px]">
+                    <span style={{ color: 'var(--sub)' }}>Listed</span>
+                    <span style={{ color: 'var(--dim)' }}>{l.listed}</span>
+                  </div>
+                </div>
+
+                {/* Total value */}
+                <div className="flex justify-between items-center pt-3 border-t border-(--wire)">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--dim)' }}>Total Value</p>
+                    <p className="text-[14px] font-semibold" style={{ color: 'var(--ink)' }}>₦{(l.qty * l.price).toLocaleString()}</p>
+                  </div>
+                  {l.status === 'Available' && (
+                    <Btn size="sm" onClick={() => setClaimTarget(l)}>Claim</Btn>
+                  )}
+                  {l.status !== 'Available' && (
+                    <Badge variant="muted">{l.status}</Badge>
+                  )}
+                </div>
               </div>
-            );
-          })}
+            </Card>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="py-14 text-center">
+          <p className="text-[14px] font-medium" style={{ color: 'var(--ink)' }}>No listings match your filters</p>
+          <p className="text-[12px] mt-1" style={{ color: 'var(--sub)' }}>Try adjusting the search or filters above.</p>
         </div>
       )}
 
-      {/* Claim Modal */}
-      <BottomSheet open={!!claimItem} onClose={() => { setClaimItem(null); setConfirmed(false); }} title="Claim Pickup">
-        {claimItem && (
-          <div className="space-y-4">
-            <div className="bg-purple-900/30 rounded-xl p-3">
-              <p className="text-white font-bold">{claimItem.type} — ~{claimItem.quantity}kg</p>
-              <p className="text-purple-400 text-sm">{claimItem.location} · {claimItem.distance}</p>
+      {/* Claim confirmation */}
+      <Modal
+        open={!!claimTarget}
+        onClose={() => setClaimTarget(null)}
+        title="Confirm Claim"
+        footer={
+          <>
+            <Btn variant="outline" onClick={() => setClaimTarget(null)}>Cancel</Btn>
+            <Btn onClick={confirmClaim}>Confirm Claim</Btn>
+          </>
+        }
+      >
+        {claimTarget && (
+          <div className="space-y-3">
+            <p className="text-[13px]" style={{ color: 'var(--sub)' }}>You are about to claim this listing:</p>
+            <div className="p-3 rounded-md border space-y-2" style={{ background: 'var(--active)', borderColor: 'var(--wire)' }}>
+              {[['Material', `${claimTarget.material} — Grade ${claimTarget.grade}`], ['Quantity', `${claimTarget.qty} kg`], ['Price', `₦${claimTarget.price.toLocaleString()}/kg`], ['Total', `₦${(claimTarget.qty * claimTarget.price).toLocaleString()}`], ['Seller', claimTarget.seller], ['Location', claimTarget.location]].map(([k,v]) => (
+                <div key={k} className="flex justify-between text-[13px]">
+                  <span style={{ color: 'var(--sub)' }}>{k}</span>
+                  <span style={{ color: 'var(--ink)' }}>{v}</span>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-purple-300 text-sm font-semibold mb-2">Select Pickup Time</p>
-              <div className="space-y-2">
-                {timeSlots.map((slot, i) => (
-                  <button key={i} onClick={() => setSelectedSlot(i)}
-                    className={`w-full p-3 rounded-xl border text-sm font-medium transition-all ${selectedSlot === i ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-purple-700 text-purple-300 hover:border-purple-500'}`}>
-                    {slot}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} className="mt-0.5 accent-green-500" />
-              <span className="text-purple-300 text-sm">I confirm I will collect within the selected window</span>
-            </label>
-            <button onClick={handleClaim} className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3 rounded-xl transition-all">
-              Confirm Claim ✅
-            </button>
           </div>
         )}
-      </BottomSheet>
+      </Modal>
+
+      {/* Create listing */}
+      <Modal
+        open={createOpen}
+        onClose={() => setCreate(false)}
+        title="Create Listing"
+        footer={
+          <>
+            <Btn variant="outline" onClick={() => setCreate(false)}>Cancel</Btn>
+            <Btn onClick={handleCreate}>Publish Listing</Btn>
+          </>
+        }
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          {[
+            ['Material Type', 'material', 'text', 'e.g. PET Bottles'],
+            ['Quantity (kg)', 'qty', 'number', 'e.g. 200'],
+            ['Price per kg (₦)', 'price', 'number', 'e.g. 1200'],
+            ['Location', 'location', 'text', 'e.g. Lekki Phase 1'],
+          ].map(([label, key, type, ph]) => (
+            <div key={key}>
+              <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--sub)' }}>{label}</label>
+              <input
+                type={type}
+                placeholder={ph}
+                value={newForm[key]}
+                onChange={e => setNewForm(f => ({ ...f, [key]: e.target.value }))}
+                className="w-full h-9 px-3 rounded border text-[13px] focus:outline-none"
+                style={{ background: 'var(--active)', borderColor: 'var(--wire)', color: 'var(--ink)' }}
+              />
+            </div>
+          ))}
+          <div>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--sub)' }}>Grade</label>
+            <div className="flex gap-2">
+              {['A', 'B', 'C'].map(g => (
+                <button type="button" key={g} onClick={() => setNewForm(f => ({ ...f, grade: g }))}
+                  className="px-4 py-1.5 rounded text-[13px] font-medium border transition-all"
+                  style={newForm.grade === g ? { background: 'var(--brand)', color: 'white', borderColor: 'var(--brand)' } : { background: 'var(--active)', color: 'var(--sub)', borderColor: 'var(--wire)' }}>
+                  Grade {g}
+                </button>
+              ))}
+            </div>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

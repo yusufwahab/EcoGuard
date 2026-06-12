@@ -1,47 +1,87 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { AnimatedCounter, CardSkeleton } from '../../components/UI';
+import { useNavigate } from 'react-router-dom';
+import { PageHeader, KPICard, Card, CardHeader, Badge, Btn, ActivityFeed } from '../../components/UI';
+import { Leaf, ShoppingCart, ArrowRight } from 'lucide-react';
 
 export default function FarmerDashboard() {
-  const { organicListings } = useApp();
-  const [loading, setLoading] = useState(true);
+  const { organicListings, activity } = useApp();
   const navigate = useNavigate();
-  useEffect(() => { setTimeout(() => setLoading(false), 1500); }, []);
-
-  if (loading) return <div className="space-y-4"><div className="grid grid-cols-2 gap-3"><CardSkeleton /><CardSkeleton /></div><CardSkeleton /></div>;
-
-  const available = organicListings.filter(l => !l.claimed);
-  const totalKg = available.reduce((s, l) => s + l.quantity, 0);
+  const available = organicListings.filter(l => l.status === 'Available');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
-      <h1 className="text-white text-2xl font-black">🌾 Farmer Dashboard</h1>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Available Batches', value: available.length, icon: '🌿', color: 'text-green-400' },
-          { label: 'Total KG Available', value: totalKg, suffix: 'kg', icon: '⚖️', color: 'text-emerald-400' },
-          { label: 'Orders This Month', value: 12, icon: '📦', color: 'text-blue-400' },
-          { label: 'Fertiliser Saved', value: 28400, prefix: '₦', icon: '💰', color: 'text-amber-400' },
-        ].map(k => (
-          <div key={k.label} className="bg-[#1a0a2e] border border-green-900/50 rounded-2xl p-4">
-            <span className="text-2xl">{k.icon}</span>
-            <p className={`text-2xl font-black mt-2 ${k.color}`}><AnimatedCounter target={k.value} prefix={k.prefix || ''} suffix={k.suffix || ''} /></p>
-            <p className="text-green-700 text-xs mt-1">{k.label}</p>
-          </div>
-        ))}
+    <div className="space-y-6 anim-fade-up">
+      <PageHeader
+        title="Organic Buyer Dashboard"
+        subtitle="Agricultural Inputs · Compost & Organic Materials"
+        actions={<Btn size="sm" onClick={() => navigate('/farmer/marketplace')}><Leaf size={13} />Browse Organic Market</Btn>}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPICard label="Available Listings"  value={available.length}    delta="Ready to order"    deltaType="neutral" />
+        <KPICard label="Total Available"     value={`${available.reduce((s,l)=>s+l.qty,0)} kg`} />
+        <KPICard label="My Active Orders"    value={1}                   delta="Pending delivery"  deltaType="neutral" />
+        <KPICard label="Total Sourced (kg)"  value="1,840"               delta="↑ 15% vs last qtr" deltaType="up" />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button onClick={() => navigate('/farmer/marketplace')} className="bg-[#1a0a2e] border border-green-900/50 hover:border-green-500/50 rounded-2xl p-5 text-left transition-all hover:scale-[1.02]">
-          <span className="text-3xl">🌿</span>
-          <h3 className="text-white font-bold mt-2">Organic Marketplace</h3>
-          <p className="text-green-700 text-sm mt-1">{available.length} batches available near you</p>
-        </button>
-        <button onClick={() => navigate('/farmer/orders')} className="bg-[#1a0a2e] border border-green-900/50 hover:border-green-500/50 rounded-2xl p-5 text-left transition-all hover:scale-[1.02]">
-          <span className="text-3xl">📦</span>
-          <h3 className="text-white font-bold mt-2">My Orders</h3>
-          <p className="text-green-700 text-sm mt-1">Track your organic waste orders</p>
-        </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2" pad={false}>
+          <div className="p-5 pb-3">
+            <CardHeader
+              title="Available Organic Materials"
+              subtitle="Food scraps, yard waste, and mixed organic"
+              actions={<Btn variant="outline" size="sm" onClick={() => navigate('/farmer/marketplace')}>View All <ArrowRight size={12} /></Btn>}
+            />
+          </div>
+          <div className="px-5 pb-5 space-y-1">
+            {available.slice(0, 5).map(l => (
+              <div key={l.id} className="flex items-center gap-4 py-3 border-b border-(--wire) last:border-0">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: 'var(--ink)' }}>{l.type}</p>
+                  <p className="text-[11px]" style={{ color: 'var(--sub)' }}>{l.location}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[13px] font-medium font-mono" style={{ color: 'var(--ink)' }}>{l.qty} kg</p>
+                  <Badge variant={l.grade === 'A' ? 'success' : l.grade === 'B' ? 'warning' : 'muted'}>Grade {l.grade}</Badge>
+                </div>
+                <div className="text-right shrink-0 min-w-[70px]">
+                  <p className="text-[13px] font-semibold" style={{ color: '#1A7F4E' }}>₦{l.fertValue.toLocaleString()}</p>
+                  <p className="text-[10px]" style={{ color: 'var(--dim)' }}>fert. value</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="space-y-4">
+          <Card pad={false}>
+            <div className="p-4 pb-3">
+              <CardHeader title="Quick Stats" subtitle="This season" />
+            </div>
+            <div className="px-4 pb-4 space-y-2.5">
+              {[
+                ['Compost Grade A',   '840 kg'],
+                ['Compost Grade B',   '680 kg'],
+                ['Total Orders',      '12'],
+                ['Avg Lead Time',     '2.3 days'],
+                ['Cost Saved vs Chem.','₦48,000'],
+              ].map(([k,v]) => (
+                <div key={k} className="flex justify-between text-[13px]">
+                  <span style={{ color: 'var(--sub)' }}>{k}</span>
+                  <span className="font-medium" style={{ color: 'var(--ink)' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card pad={false}>
+            <div className="p-4 pb-3">
+              <CardHeader title="Recent Activity" />
+            </div>
+            <div className="px-4 pb-4">
+              <ActivityFeed events={activity.slice(0, 5)} max={5} />
+            </div>
+          </Card>
+        </div>
       </div>
     </div>
   );

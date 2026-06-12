@@ -1,149 +1,138 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { AnimatedCounter, CircularProgress, CardSkeleton } from '../../components/UI';
-import { mockLeaderboard } from '../../data/mockData';
+import { useNavigate } from 'react-router-dom';
+import {
+  KPICard, Card, CardHeader, PageHeader, Badge, FillBar,
+  ActivityFeed, IntelPanel, Btn
+} from '../../components/UI';
+import { MapPin, AlertCircle, Star, ArrowRight, Recycle } from 'lucide-react';
 
 export default function HouseholdDashboard() {
-  const { currentUser, bins, scanHistory } = useApp();
-  const [loading, setLoading] = useState(true);
+  const { currentUser, bins, incidents, activity } = useApp();
   const navigate = useNavigate();
-  const myBin = bins[0];
 
-  useEffect(() => { setTimeout(() => setLoading(false), 1500); }, []);
+  const nearbyBins = bins.slice(0, 4);
+  const myReports  = incidents.filter(i => i.filedBy === 'Adaeze Okonkwo');
+  const fullNearby = nearbyBins.filter(b => b.status === 'full' || b.fill > 70);
 
-  const quickActions = [
-    { icon: '📷', label: 'Scan Waste', path: '/household/scan', color: 'from-green-500/20 to-green-600/10 border-green-500/30 hover:border-green-400' },
-    { icon: '🚛', label: 'Request Collection', path: '/household/bin', color: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 hover:border-blue-400' },
-    { icon: '⭐', label: 'View Rewards', path: '/household/rewards', color: 'from-amber-500/20 to-amber-600/10 border-amber-500/30 hover:border-amber-400' },
-    { icon: '🚩', label: 'Report Issue', path: '/household/history', color: 'from-red-500/20 to-red-600/10 border-red-500/30 hover:border-red-400' },
-  ];
-
-  if (loading) return (
-    <div className="space-y-4">
-      <CardSkeleton />
-      <div className="grid grid-cols-2 gap-4"><CardSkeleton /><CardSkeleton /></div>
-      <CardSkeleton />
-    </div>
-  );
-
-  const maxFill = Math.max(myBin.fillLevels.organic, myBin.fillLevels.recyclable, myBin.fillLevels.general);
+  const statusVariant = { full: 'critical', moderate: 'warning', active: 'success', offline: 'muted' };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
-      {/* Hero Card */}
-      <div className="bg-gradient-to-br from-[#1a0a2e] to-[#2D0A4E] border border-purple-700 rounded-2xl p-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-6">
-          <div className="flex-1">
-            <p className="text-purple-400 text-sm">Good morning,</p>
-            <h1 className="text-white text-2xl font-black mt-1">{currentUser.name} 👋</h1>
-            <p className="text-green-400 text-sm mt-1 font-medium">🔥 7-day sorting streak</p>
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              {[
-                { label: 'Items Scanned', value: 47, suffix: '' },
-                { label: 'KG Diverted', value: 23, suffix: 'kg' },
-                { label: 'CO₂ Saved', value: 18, suffix: 'kg' },
-              ].map(s => (
-                <div key={s.label} className="bg-purple-900/40 rounded-xl p-3 text-center">
-                  <p className="text-white text-xl font-black"><AnimatedCounter target={s.value} suffix={s.suffix} /></p>
-                  <p className="text-purple-400 text-xs mt-1">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <CircularProgress value={currentUser.sustainabilityScore} size={120} stroke={10} color="#22C55E"
-              label={`${currentUser.sustainabilityScore}`} sublabel="Score" />
-            <p className="text-purple-300 text-xs">Sustainability Score</p>
-          </div>
-        </div>
+    <div className="space-y-6 anim-fade-up">
+      <PageHeader
+        title={`Welcome back, ${currentUser.name.split(' ')[0]}.`}
+        subtitle="Citizen Portal · Lagos"
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KPICard label="Your Points"     value={currentUser.points} delta="845 pts earned" deltaType="up" />
+        <KPICard label="Sustainability"  value={currentUser.sustainabilityScore} suffix="%" delta="Top 25% in zone" deltaType="up" />
+        <KPICard label="Reports Filed"   value={myReports.length + 3} delta="2 resolved" deltaType="neutral" />
+        <KPICard label="Nearby Bins"     value={nearbyBins.length} delta={`${fullNearby.length} need pickup`} deltaType={fullNearby.length > 0 ? 'down' : 'neutral'} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Bin Status */}
-        <div className="bg-[#1a0a2e] border border-purple-800 rounded-2xl p-5 cursor-pointer hover:border-purple-600 transition-all"
-          onClick={() => navigate('/household/bin')}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-bold">My Bin Status</h2>
-            {maxFill >= 80 && <span className="bg-amber-500/20 text-amber-400 text-xs px-2 py-1 rounded-full border border-amber-500/30 animate-pulse">⚠️ Near Full</span>}
-          </div>
-          <div className="flex justify-around items-end">
-            <BinCompartment label="Recyclable" value={myBin.fillLevels.recyclable} color="#3B82F6" />
-            <BinCompartment label="Organic" value={myBin.fillLevels.organic} color="#22C55E" />
-            <BinCompartment label="General" value={myBin.fillLevels.general} color="#EF4444" />
-          </div>
-          <p className="text-purple-500 text-xs text-center mt-3">Tap to manage bin →</p>
-        </div>
+      {/* Alert if bins full nearby */}
+      {fullNearby.length > 0 && (
+        <IntelPanel
+          type="warning"
+          title="Nearby Bin Alert"
+          updatedAt="Live"
+          body={`${fullNearby.length} bin${fullNearby.length > 1 ? 's' : ''} near you ${fullNearby.length > 1 ? 'are' : 'is'} at high capacity. Consider using an alternate bin or filing a report if overflowing.`}
+          actions={
+            <Btn size="sm" onClick={() => navigate('/household/bin')}>View Nearby Bins</Btn>
+          }
+        />
+      )}
 
-        {/* Recent Activity */}
-        <div className="bg-[#1a0a2e] border border-purple-800 rounded-2xl p-5">
-          <h2 className="text-white font-bold mb-3">Recent Activity</h2>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {scanHistory.slice(0, 5).map((item, i) => (
-              <div key={item.id} className="flex items-center gap-3 p-2 rounded-xl bg-purple-900/30 animate-slide-in"
-                style={{ animationDelay: `${i * 0.1}s` }}>
-                <span className="text-2xl">{item.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{item.type}</p>
-                  <p className="text-purple-400 text-xs">{new Date(item.date).toLocaleDateString()}</p>
+      {/* Quick actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { icon: AlertCircle, label: 'Report an Issue',    sub: 'File a waste complaint', to: '/household/scan',    color: '#E53935' },
+          { icon: MapPin,      label: 'Find Nearest Bin',   sub: 'Locate bins near you',   to: '/household/bin',     color: '#1A7F4E' },
+          { icon: Star,        label: 'Redeem Rewards',     sub: `${currentUser.points} points available`, to: '/household/rewards', color: '#D4A017' },
+        ].map(({ icon: Icon, label, sub, to, color }) => (
+          <button
+            key={to}
+            onClick={() => navigate(to)}
+            className="flex items-center gap-4 p-4 rounded-md border text-left group transition-all duration-150"
+            style={{ background: 'var(--card)', borderColor: 'var(--wire)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--active)'; e.currentTarget.style.borderColor = 'var(--wire-strong)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--card)'; e.currentTarget.style.borderColor = 'var(--wire)'; }}
+          >
+            <div className="w-9 h-9 rounded flex items-center justify-center shrink-0" style={{ background: `${color}1A`, color }}>
+              <Icon size={17} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--ink)' }}>{label}</p>
+              <p className="text-[11px]" style={{ color: 'var(--sub)' }}>{sub}</p>
+            </div>
+            <ArrowRight size={14} style={{ color: 'var(--dim)' }} className="shrink-0" />
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Nearby bins */}
+        <Card className="lg:col-span-2" pad={false}>
+          <div className="p-5 pb-3">
+            <CardHeader
+              title="Nearby Smart Bins"
+              subtitle="Bins within your area"
+              actions={<Btn variant="outline" size="sm" onClick={() => navigate('/household/bin')}>View All</Btn>}
+            />
+          </div>
+          <div className="px-5 pb-5 space-y-1">
+            {nearbyBins.map(bin => (
+              <div key={bin.id} className="flex items-center gap-4 py-3 border-b border-(--wire) last:border-0">
+                <div>
+                  <p className="text-[13px] font-medium" style={{ color: 'var(--ink)' }}>{bin.location}</p>
+                  <p className="text-[11px]" style={{ color: 'var(--sub)' }}>{bin.zone}</p>
                 </div>
-                <span className="text-green-400 text-sm font-bold">+{item.points}pts</span>
+                <div className="ml-auto flex items-center gap-3 shrink-0">
+                  <div className="w-24">
+                    <FillBar value={bin.fill} />
+                  </div>
+                  <Badge variant={statusVariant[bin.status] || 'muted'}>{bin.status}</Badge>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* Quick Actions */}
-      <div className="bg-[#1a0a2e] border border-purple-800 rounded-2xl p-5">
-        <h2 className="text-white font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {quickActions.map(a => (
-            <button key={a.label} onClick={() => navigate(a.path)}
-              className={`bg-gradient-to-br ${a.color} border rounded-xl p-4 flex flex-col items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95`}>
-              <span className="text-3xl">{a.icon}</span>
-              <span className="text-white text-xs font-semibold text-center">{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Leaderboard Teaser */}
-      <div className="bg-[#1a0a2e] border border-purple-800 rounded-2xl p-5">
-        <h2 className="text-white font-bold mb-3">🏆 Estate Leaderboard</h2>
-        <div className="space-y-2">
-          {mockLeaderboard.slice(0, 3).map(entry => (
-            <div key={entry.rank} className={`flex items-center gap-3 p-3 rounded-xl ${entry.isUser ? 'bg-green-500/10 border border-green-500/30' : 'bg-purple-900/30'}`}>
-              <span className="text-lg font-black text-purple-400 w-6">#{entry.rank}</span>
-              <span className="text-xl">{entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'}</span>
-              <span className="text-white text-sm font-medium flex-1">{entry.name}</span>
-              <span className="text-green-400 text-sm font-bold">{entry.score}</span>
+        {/* Activity + reports */}
+        <div className="space-y-4">
+          <Card pad={false}>
+            <div className="p-4 pb-3">
+              <CardHeader title="My Reports" subtitle={`${myReports.length + 3} filed`} />
             </div>
-          ))}
-        </div>
-        <button onClick={() => navigate('/household/history')} className="w-full mt-3 text-green-400 text-sm font-medium hover:text-green-300 transition-colors">
-          View Full Leaderboard →
-        </button>
-      </div>
-    </div>
-  );
-}
+            {myReports.length === 0 ? (
+              <p className="px-4 pb-4 text-[12px]" style={{ color: 'var(--sub)' }}>No reports filed yet.</p>
+            ) : (
+              <div className="px-4 pb-4 space-y-2">
+                {myReports.slice(0, 3).map(r => (
+                  <div key={r.id} className="flex items-center gap-3">
+                    <span className="text-[11px] font-mono" style={{ color: 'var(--dim)' }}>{r.id}</span>
+                    <span className="text-[12px] flex-1 truncate" style={{ color: 'var(--sub)' }}>{r.category}</span>
+                    <Badge variant={{ Open: 'critical', Resolved: 'success', 'In Review': 'info' }[r.status] || 'muted'}>
+                      {r.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
 
-function BinCompartment({ label, value, color }) {
-  const barColor = value >= 100 ? '#EF4444' : value >= 80 ? '#F59E0B' : color;
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative w-12 h-28 bg-purple-900/50 rounded-lg overflow-hidden border border-purple-700">
-        <div className={`absolute bottom-0 w-full transition-all duration-1000 ${value >= 80 ? 'animate-pulse' : ''}`}
-          style={{ height: `${Math.min(value, 100)}%`, backgroundColor: barColor }} />
-        {value >= 100 && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[8px] text-white font-bold text-center leading-tight px-1">FULL</span>
-          </div>
-        )}
+          <Card pad={false}>
+            <div className="p-4 pb-3">
+              <CardHeader title="Recent Activity" />
+            </div>
+            <div className="px-4 pb-4">
+              <ActivityFeed events={activity.slice(0, 5)} max={5} />
+            </div>
+          </Card>
+        </div>
       </div>
-      <span className="text-xs font-bold" style={{ color: barColor }}>{value}%</span>
-      <span className="text-purple-400 text-[10px] text-center">{label}</span>
     </div>
   );
 }
