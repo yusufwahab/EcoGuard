@@ -91,12 +91,27 @@ body {
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+@keyframes scanBounce {
+  0%   { top: 0%; }
+  50%  { top: 94%; }
+  100% { top: 0%; }
+}
+@keyframes scanPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(212,160,23,0.4); }
+  50%       { opacity: 0.5; box-shadow: 0 0 18px rgba(212,160,23,0.7); }
+}
 
 .anim-fade-up    { animation: fadeUp    0.22s ease both; }
 .anim-slide-in   { animation: slideRight 0.26s cubic-bezier(0.22,1,0.36,1) both; }
 .anim-slide-left { animation: slideLeft  0.22s ease both; }
 .anim-pulse-dot  { animation: pulseDot  2s ease-in-out infinite; }
 .anim-slide-up   { animation: slideUp   0.28s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Three offset scan beams — a=primary  b=echo1  c=echo2 */
+.scan-line-a { position: absolute; left: 0; right: 0; height: 2px; top: 0; animation: scanBounce 2.2s ease-in-out infinite 0s; }
+.scan-line-b { position: absolute; left: 0; right: 0; height: 2px; top: 0; animation: scanBounce 2.2s ease-in-out infinite -0.73s; }
+.scan-line-c { position: absolute; left: 0; right: 0; height: 2px; top: 0; animation: scanBounce 2.2s ease-in-out infinite -1.47s; }
+.scan-box    { animation: scanPulse 0.85s ease-in-out infinite; }
 
 /* ── Sticky table header ───────────────────────────────────── */
 .eg-table thead th {
