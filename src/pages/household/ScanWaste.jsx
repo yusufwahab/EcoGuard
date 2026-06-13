@@ -276,32 +276,38 @@ export default function ScanWaste() {
                       : 'rgba(10,13,15,0.44)',
                 }} />
 
-                {/* Scan grid overlay */}
-                {(phase === 'analyzing' || phase === 'detecting') && (
-                  <div className="absolute inset-0" style={{
-                    backgroundImage:
-                      'linear-gradient(rgba(26,127,78,0.07) 1px, transparent 1px),' +
-                      'linear-gradient(90deg, rgba(26,127,78,0.07) 1px, transparent 1px)',
-                    backgroundSize: '26px 26px',
-                  }} />
-                )}
+                {/* Scan grid — always on, intensity varies by phase */}
+                <div className="absolute inset-0 transition-opacity duration-500" style={{
+                  backgroundImage:
+                    'linear-gradient(rgba(26,127,78,0.07) 1px, transparent 1px),' +
+                    'linear-gradient(90deg, rgba(26,127,78,0.07) 1px, transparent 1px)',
+                  backgroundSize: '26px 26px',
+                  opacity: phase === 'analyzing' ? 1 : phase === 'detecting' ? 0.7 : 0.35,
+                }} />
 
-                {/* ── Three bouncing scan beams ── */}
-                {phase === 'analyzing' && (
+                {/* ── Three bouncing scan beams — always animating ── */}
+                {!isAlert && (
                   <>
-                    {/* Primary beam — brightest */}
+                    {/* Primary beam — 4px thick, always fully visible */}
                     <div className="scan-line-a" style={{
-                      background: 'linear-gradient(to right, transparent 0%, rgba(26,127,78,0.95) 15%, rgba(26,127,78,0.95) 85%, transparent 100%)',
-                      boxShadow: '0 0 12px 1px rgba(26,127,78,0.75)',
+                      height: 4,
+                      background: 'linear-gradient(to right, transparent 2%, #1A7F4E 10%, #4ADE80 50%, #1A7F4E 90%, transparent 98%)',
+                      boxShadow: '0 0 14px 3px rgba(26,127,78,0.9), 0 0 4px rgba(74,222,128,0.8)',
+                      opacity: phase === 'analyzing' ? 1 : phase === 'detecting' ? 0.85 : 0.7,
                     }} />
-                    {/* Echo 1 — medium */}
+                    {/* Echo 1 — 2px */}
                     <div className="scan-line-b" style={{
-                      background: 'linear-gradient(to right, transparent 0%, rgba(26,127,78,0.55) 15%, rgba(26,127,78,0.55) 85%, transparent 100%)',
-                      boxShadow: '0 0 6px rgba(26,127,78,0.4)',
+                      height: 2,
+                      background: 'linear-gradient(to right, transparent 5%, rgba(26,127,78,0.9) 15%, rgba(74,222,128,0.9) 50%, rgba(26,127,78,0.9) 85%, transparent 95%)',
+                      boxShadow: '0 0 8px 2px rgba(26,127,78,0.6)',
+                      opacity: phase === 'analyzing' ? 0.85 : phase === 'detecting' ? 0.65 : 0.5,
                     }} />
-                    {/* Echo 2 — faint */}
+                    {/* Echo 2 — 2px */}
                     <div className="scan-line-c" style={{
-                      background: 'linear-gradient(to right, transparent 0%, rgba(26,127,78,0.25) 15%, rgba(26,127,78,0.25) 85%, transparent 100%)',
+                      height: 2,
+                      background: 'linear-gradient(to right, transparent 5%, rgba(26,127,78,0.7) 15%, rgba(26,127,78,0.7) 85%, transparent 95%)',
+                      boxShadow: '0 0 5px rgba(26,127,78,0.4)',
+                      opacity: phase === 'analyzing' ? 0.7 : phase === 'detecting' ? 0.5 : 0.35,
                     }} />
                   </>
                 )}
@@ -471,29 +477,23 @@ export default function ScanWaste() {
                 <div className="p-4 space-y-2.5">
                   {[
                     ['Phase',
-                      phaseLabel,
-                      isAlert ? '#E53935' : phase === 'analyzing' ? '#4ADE80' : phase === 'detecting' ? '#D4A017' : 'var(--ink)',
-                    ],
+                      phase === 'idle' ? 'Standby — Monitoring' : phaseLabel,
+                      isAlert ? '#E53935' : phase === 'analyzing' ? '#4ADE80' : phase === 'detecting' ? '#D4A017' : 'var(--ink)'],
                     ['Item',
-                      phase === 'idle' ? '—' : currentItem?.type,
-                      'var(--ink)',
-                    ],
+                      phase === 'idle' ? 'Bin Almost Filled' : currentItem?.type,
+                      phase === 'idle' ? 'var(--ink)' : 'var(--ink)'],
                     ['Category',
-                      phase === 'idle' ? '—' : currentItem?.category,
-                      phase !== 'idle' ? COMP_META[currentItem?.comp]?.color : 'var(--dim)',
-                    ],
+                      phase === 'idle' ? 'Unclassified' : currentItem?.category,
+                      phase === 'idle' ? 'var(--sub)' : COMP_META[currentItem?.comp]?.color],
                     ['Confidence',
-                      phase === 'analyzing'
-                        ? `${liveConf}%`
-                        : (phase === 'classified' || isAlert)
-                          ? `${currentItem?.confidence}%`
-                          : '—',
-                      '#4ADE80',
-                    ],
+                      phase === 'idle' ? '93.30%'
+                        : phase === 'analyzing' ? `${liveConf}.00%`
+                        : (phase === 'classified' || isAlert) ? `${currentItem?.confidence}.00%`
+                        : '93.30%',
+                      phase === 'idle' ? '#4ADE80' : '#4ADE80'],
                     ['Compartment',
-                      phase === 'idle' ? '—' : COMP_META[currentItem?.comp]?.label,
-                      phase !== 'idle' ? COMP_META[currentItem?.comp]?.color : 'var(--dim)',
-                    ],
+                      phase === 'idle' ? 'None Assigned' : COMP_META[currentItem?.comp]?.label,
+                      phase === 'idle' ? 'var(--sub)' : COMP_META[currentItem?.comp]?.color],
                   ].map(([label, val, color]) => (
                     <div key={label} className="flex items-center justify-between text-[12px]">
                       <span style={{ color: 'var(--sub)' }}>{label}</span>
@@ -505,7 +505,7 @@ export default function ScanWaste() {
                     <div className="flex justify-between text-[12px]">
                       <span style={{ color: 'var(--sub)' }}>Items Scanned</span>
                       <span className="font-mono font-semibold" style={{ color: 'var(--ink)' }}>
-                        {logs.length} / {DEMO_ITEMS.length}
+                        {logs.length} / 7
                       </span>
                     </div>
                     <div className="flex justify-between text-[12px]">
@@ -518,7 +518,7 @@ export default function ScanWaste() {
                     {/* Overall progress bar */}
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--active)' }}>
                       <div className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${(logs.length / DEMO_ITEMS.length) * 100}%`, background: 'var(--brand)' }} />
+                        style={{ width: `${(logs.length / 7) * 100}%`, background: 'var(--brand)' }} />
                     </div>
                   </div>
                 </div>
